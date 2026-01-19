@@ -30,7 +30,7 @@ print("Welcome to Stock Fundamentals and sentiment analysis")
 print("This model uses NLP techniques and ML Random Forest to analyze stocks")
 print("This script is designed for automatic news input but manual fundamentals")
 print("Loading Fundamentals model...")
-fund = joblib.load('./fundamentals_stock_model.joblib')
+fund = joblib.load('../fundamentals_stock_model.joblib')
 print("Finished loading")
 print("Loading Sentiment Analyzer")
 analyzer = SentimentIntensityAnalyzer()
@@ -75,3 +75,4 @@ while True:
     else:
         print("Bye bye!")
         break
+
