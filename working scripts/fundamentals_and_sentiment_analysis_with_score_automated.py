@@ -59,13 +59,13 @@ print("Welcome to Stock Fundamentals and sentiment analysis")
 print("This model uses NLP techniques and ML Random Forest to analyze stocks")
 print("This script is designed for automatic news input and automatic fundamentals")
 print("Loading Fundamentals model...")
-fund = joblib.load('./fundamentals_stock_model.joblib')
+fund = joblib.load('../fundamentals_stock_model.joblib')
 print("Finished loading")
 print("Loading Sentiment Analyzer")
 analyzer = SentimentIntensityAnalyzer()
 print("Finished loading")
 print("Loading the Stock Fundamentals scorer")
-score=joblib.load('./stock_score_regression.pkl')
+score=joblib.load('../stock_score_regression.pkl')
 
 while True:
     n = input("Enter y to continue q to quit: ")
@@ -135,6 +135,7 @@ while True:
     else:
         print("Bye bye!")
         break
+
 
 
 
