@@ -3,7 +3,7 @@ import numpy as np
 from xgboost import XGBRegressor
 import joblib
 print("Welcome to fundamentals stock regression")
-data=pd.read_csv("../nifty_500_stats.csv",sep=";")
+data=pd.read_csv("../datasets/nifty_500_stats.csv",sep=";")
 data.head()
 dicti={"Yes":1,"No":1}
 
@@ -31,3 +31,4 @@ modell=XGBRegressor(n_estimators=300,
 modell.fit(X,Y)
 joblib.dump(modell,'stock_score_regression.pkl')
 print("model dumped")
+
