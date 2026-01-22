@@ -5,7 +5,7 @@ import joblib
 
 print("Welcome to fundamentals stock classification")
 
-data = pd.read_csv("/Users/sriramkancherla/Desktop/Projects/Stock Screener with Sentiment Analyzer/AI-Investment-Screener-and-Analyzer-using-Sentiment-and-Stock-Fundamentals-main/datasets/financials_cleaned.csv", sep=",")
+data = pd.read_csv("../datasets/financials_cleaned.csv", sep=",")
 
 numeric_cols = [
     "Price", "Price/Earnings", "Dividend_Yield", "52w_low", "52w_high",
@@ -52,4 +52,4 @@ model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X, Y)
 
 joblib.dump(model, "fundamentals_stock_model.joblib")
-print("✅ Model saved as fundamentals_stock_model.joblib")
+print(" Model saved as fundamentals_stock_model.joblib")
