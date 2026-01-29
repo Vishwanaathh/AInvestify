@@ -119,7 +119,7 @@ def home():
     return "Welcome to Ainvestify"
 
 
-@app.route("/chatbot/<query>")
+@app.route("/chatbot/<path:query>")
 def response(query):
     queryy="Respond to this with the latest relevant news regarding the question mentioned and also the underlying fundamentals of the business "+query
     client = genai.Client(api_key=api_keyy)

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ainvestify</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg: #0f172a;
+    --card: #111827;
+    --accent: #38bdf8;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: var(--muted);
+    margin-bottom: 30px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.card {
+    background: rgba(17, 24, 39, 0.88);
+    backdrop-filter: blur(14px);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 14px;
+    font-weight: 600;
+}
+
+input {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    border: none;
+    outline: none;
+    background: #020617;
+    color: var(--text);
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #38bdf8, #6366f1);
+    color: black;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(56,189,248,0.35);
+}
+
+pre {
+    margin-top: 15px;
+    background: #020617;
+    padding: 14px;
+    border-radius: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+    font-size: 13px;
+    color: #a5f3fc;
+}
+
+ul {
+    margin-top: 12px;
+    padding-left: 18px;
+}
+
+li {
+    margin-bottom: 8px;
+    color: #c7d2fe;
+    font-size: 14px;
+}
+
+.footer {
+    margin-top: 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📈 Ainvestify</h1>
+<div class="subtitle">AI-powered stock fundamentals, sentiment & news</div>
+
+<div class="container">
+
+    <!-- Chatbot -->
+    <div class="card">
+        <h3>🤖 Market Chatbot</h3>
+        <input id="chatQuery" placeholder="Ask about a company or market">
+        <button onclick="chat()">Ask Gemini</button>
+        <pre id="chatResult"></pre>
+    </div>
+
+    <!-- Fundamentals -->
+    <div class="card">
+        <h3>📊 Stock Fundamentals</h3>
+        <input id="fundTicker" placeholder="Ticker (e.g. AAPL)">
+        <button onclick="fundamentals()">Fetch Fundamentals</button>
+        <pre id="fundResult"></pre>
+    </div>
+
+    <!-- News -->
+    <div class="card">
+        <h3>📰 Latest Stock News</h3>
+        <input id="newsStock" placeholder="Company name (e.g. Apple)">
+        <button onclick="news()">Get News</button>
+        <ul id="newsResult"></ul>
+    </div>
+
+    <!-- Full AI Analysis -->
+    <div class="card">
+        <h3>🧠 AI Stock Analysis</h3>
+        <input id="stockName" placeholder="Company name">
+        <input id="stockTicker" placeholder="Ticker">
+        <button onclick="fullRequest()">Analyze Stock</button>
+        <pre id="reqResult"></pre>
+    </div>
+
+</div>
+
+<div class="footer">
+    Built with Flask · Gemini · ML · Sentiment Analysis
+</div>
+
+<script>
+const API = "http://127.0.0.1:5000";
+
+function chat() {
+    const q = document.getElementById("chatQuery").value;
+    fetch(`${API}/chatbot/${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById("chatResult").textContent =
+                d.response || JSON.stringify(d, null, 2);
+        });
+}
+
+function fundamentals() {
+    const t = document.getElementById("fundTicker").value;
+    fetch(`${API}/fundamentals/${t}`)
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById("fundResult").textContent =
+                JSON.stringify(d, null, 2);
+        });
+}
+
+function news() {
+    const n = document.getElementById("newsStock").value;
+    fetch(`${API}/news/${encodeURIComponent(n)}`)
+        .then(r => r.json())
+        .then(list => {
+            const ul = document.getElementById("newsResult");
+            ul.innerHTML = "";
+            list.forEach(item => {
+                const li = document.createElement("li");
+                li.textContent = item;
+                ul.appendChild(li);
+            });
+        });
+}
+
+function fullRequest() {
+    const n = document.getElementById("stockName").value;
+    const t = document.getElementById("stockTicker").value;
+    fetch(`${API}/request/${encodeURIComponent(n)}/${t}`)
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById("reqResult").textContent =
+                JSON.stringify(d, null, 2);
+        });
+}
+</script>
+
+</body>
+</html>
