@@ -131,6 +131,29 @@ def response(query):
     return jsonify({"response": response.text})
 
 
+@app.route("/chart/<stockticker>")
+def stock_chart(stockticker):
+    try:
+        stock = yf.Ticker(stockticker)
+        hist = stock.history(period="max")
+
+        if hist.empty:
+            return jsonify({"error": "No historical data found"}), 404
+
+        data = []
+        for date, row in hist.iterrows():
+            data.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "close": round(float(row["Close"]), 2)
+            })
+
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.route("/fundamentals/<stockticker>")
 def fundd(stockticker):
