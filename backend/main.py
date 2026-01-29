@@ -104,11 +104,32 @@ senlogreg = joblib.load("../AI_PART/sentiment_logreg.pkl")
 vectorizer = joblib.load("../AI_PART/tfidf_vectorizer.pkl")
 
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/")
 def home():
     return "Welcome to Ainvestify"
+
+
+@app.route("/fundamentals/<stockname>/<stockticker>")
+def fund(stockname,stockticker):
+    ff=get_stock_fundamentals(stockticker)
+    input_features = {
+        "Market Cap": safe_num(ff["Market Cap"]),
+        "Current Price": safe_num(ff["Current Price"]),
+        "52 Week High": safe_num(ff["52 Week High"]),
+        "52 Week Low": safe_num(ff["52 Week Low"]),
+        "Book Value": safe_num(ff["Book Value"]),
+        "PE Ratio": safe_num(ff["PE Ratio"]),
+        "Dividend Yield": safe_num(ff["Dividend Yield"]),
+        "EBITDA": safe_num(ff["EBITDA"]),
+        "Price/Sales": safe_num(ff["Price/Sales"]),
+        "Price/Book": safe_num(ff["Price/Book"])
+    }
+
+    return jsonify(input_features)
+
 
 
 @app.route("/request/<stockname>/<stockticker>")
