@@ -16,9 +16,15 @@ from flask import Flask, request, jsonify
 from flask_jwt_extended import jwt_required, JWTManager, create_access_token, get_jwt_identity
 from flask_cors import CORS
 from nltk.tokenize import word_tokenize
+from bs4 import BeautifulSoup
+import os
+from google import genai
+from dotenv import load_dotenv
 
 
 def clean_text(text):
+    
+    text = BeautifulSoup(text, "html.parser").get_text()
     text = text.lower()
     text = re.sub(r"http\S+", "", text)
     text = re.sub(r"[^a-z\s]", "", text)
@@ -62,8 +68,7 @@ def get_stock_fundamentals(ticker, retries=7):
                 "Price/Book": info.get("priceToBook")
             }
 
-            if fundamentals["Dividend Yield"] is not None and fundamentals["Dividend Yield"] < 1:
-                fundamentals["Dividend Yield"] *= 100
+            
 
             return fundamentals
 
@@ -106,14 +111,29 @@ vectorizer = joblib.load("../AI_PART/tfidf_vectorizer.pkl")
 app = Flask(__name__)
 CORS(app)
 
+load_dotenv()
+api_keyy = os.getenv("GENAI_API_KEY")
 
 @app.route("/")
 def home():
     return "Welcome to Ainvestify"
 
 
-@app.route("/fundamentals/<stockname>/<stockticker>")
-def fund(stockname,stockticker):
+@app.route("/chatbot/<query>")
+def response(query):
+    queryy="Respond to this with the latest relevant news regarding the question mentioned and also the underlying fundamentals of the business "+query
+    client = genai.Client(api_key=api_keyy)
+    response = client.models.generate_content(
+        model="models/gemini-2.5-flash", 
+        contents=queryy
+    )
+    
+    return jsonify({"response": response.text})
+
+
+
+@app.route("/fundamentals/<stockticker>")
+def fundd(stockticker):
     ff=get_stock_fundamentals(stockticker)
     input_features = {
         "Market Cap": safe_num(ff["Market Cap"]),
@@ -129,6 +149,15 @@ def fund(stockname,stockticker):
     }
 
     return jsonify(input_features)
+
+
+
+@app.route("/news/<stockname>")
+def news(stockname):
+    news_articles=scrape_google_news_rss(stockname)
+    cleaned_articles = [clean_text(a) for a in news_articles]
+    return cleaned_articles
+
 
 
 
