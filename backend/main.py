@@ -91,17 +91,17 @@ def safe_num(x):
 
 nltk.download("punkt")
 
-fund = joblib.load("./AI_PART/fundamentals_stock_model.joblib")
+fund = joblib.load("../AI_PART/fundamentals_stock_model.joblib")
 analyzer = SentimentIntensityAnalyzer()
-score = joblib.load("./AI_PART/stock_score_regression.pkl")
-rfrscore = joblib.load("./AI_PART/rfr_stockfundamentalsscorer.pkl")
+score = joblib.load("../AI_PART/stock_score_regression.pkl")
+rfrscore = joblib.load("../AI_PART/rfr_stockfundamentalsscorer.pkl")
 
-nn_model = load_model("./AI_PART/keras_stockfundamentalsscorer.h5", compile=False)
-nn_X_scaler = joblib.load("./AI_PART/keras_X_scaler.pkl")
-nn_y_scaler = joblib.load("./AI_PART/keras_Y_scaler.pkl")
+nn_model = load_model("../AI_PART/keras_stockfundamentalsscorer.h5", compile=False)
+nn_X_scaler = joblib.load("../AI_PART/keras_X_scaler.pkl")
+nn_y_scaler = joblib.load("../AI_PART/keras_Y_scaler.pkl")
 
-senlogreg = joblib.load("./AI_PART/sentiment_logreg.pkl")
-vectorizer = joblib.load("./AI_PART/tfidf_vectorizer.pkl")
+senlogreg = joblib.load("../AI_PART/sentiment_logreg.pkl")
+vectorizer = joblib.load("../AI_PART/tfidf_vectorizer.pkl")
 
 app = Flask(__name__)
 
