@@ -1,219 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ainvestify</title>
+  <meta charset="UTF-8" />
+  <title>Ainvestify</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-:root {
-    --bg: #0f172a;
-    --card: #111827;
-    --accent: #38bdf8;
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 20px;
+    }
 
-* {
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
-}
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-body {
-    margin: 0;
-    background: linear-gradient(135deg, #020617, #0f172a);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 40px;
-}
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
 
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-}
+    .card {
+      background: #111827;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
 
-.subtitle {
-    color: var(--muted);
-    margin-bottom: 30px;
-}
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 15px;
+    }
 
-.container {
-    max-width: 1200px;
-    margin: auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 25px;
-}
+    button {
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
 
-.card {
-    background: rgba(17, 24, 39, 0.88);
-    backdrop-filter: blur(14px);
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.45);
-    border: 1px solid rgba(255,255,255,0.06);
-}
+    button:hover {
+      background: #1d4ed8;
+    }
 
-.card h3 {
-    margin-top: 0;
-    margin-bottom: 14px;
-    font-weight: 600;
-}
+    pre {
+      white-space: pre-wrap;
+      background: #020617;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
 
-input {
-    width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-    border: none;
-    outline: none;
-    background: #020617;
-    color: var(--text);
-    font-size: 14px;
-}
+    .full {
+      grid-column: span 2;
+    }
 
-button {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #38bdf8, #6366f1);
-    color: black;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(56,189,248,0.35);
-}
-
-pre {
-    margin-top: 15px;
-    background: #020617;
-    padding: 14px;
-    border-radius: 12px;
-    max-height: 280px;
-    overflow-y: auto;
-    font-size: 13px;
-    color: #a5f3fc;
-}
-
-ul {
-    margin-top: 12px;
-    padding-left: 18px;
-}
-
-li {
-    margin-bottom: 8px;
-    color: #c7d2fe;
-    font-size: 14px;
-}
-
-.footer {
-    margin-top: 40px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 13px;
-}
-</style>
+    canvas {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>📈 Ainvestify</h1>
-<div class="subtitle">AI-powered stock fundamentals, sentiment & news</div>
+<h1>📊 Ainvestify – Stock Analyzer</h1>
 
 <div class="container">
 
-    <!-- Chatbot -->
-    <div class="card">
-        <h3>🤖 Market Chatbot</h3>
-        <input id="chatQuery" placeholder="Ask about a company or market">
-        <button onclick="chat()">Ask Gemini</button>
-        <pre id="chatResult"></pre>
-    </div>
+  <!-- Chatbot -->
+  <div class="card">
+    <h2>🤖 Stock Chatbot</h2>
+    <input id="chatQuery" placeholder="Should I buy Apple stock?" />
+    <button onclick="chat()">Ask</button>
+    <pre id="chatResult"></pre>
+  </div>
 
-    <!-- Fundamentals -->
-    <div class="card">
-        <h3>📊 Stock Fundamentals</h3>
-        <input id="fundTicker" placeholder="Ticker (e.g. AAPL)">
-        <button onclick="fundamentals()">Fetch Fundamentals</button>
-        <pre id="fundResult"></pre>
-    </div>
+  <!-- Fundamentals -->
+  <div class="card">
+    <h2>📈 Fundamentals</h2>
+    <input id="fundTicker" placeholder="AAPL" />
+    <button onclick="getFundamentals()">Fetch</button>
+    <pre id="fundResult"></pre>
+  </div>
 
-    <!-- News -->
-    <div class="card">
-        <h3>📰 Latest Stock News</h3>
-        <input id="newsStock" placeholder="Company name (e.g. Apple)">
-        <button onclick="news()">Get News</button>
-        <ul id="newsResult"></ul>
-    </div>
+  <!-- News -->
+  <div class="card full">
+    <h2>📰 Latest News</h2>
+    <input id="newsStock" placeholder="Apple" />
+    <button onclick="getNews()">Get News</button>
+    <pre id="newsResult"></pre>
+  </div>
 
-    <!-- Full AI Analysis -->
-    <div class="card">
-        <h3>🧠 AI Stock Analysis</h3>
-        <input id="stockName" placeholder="Company name">
-        <input id="stockTicker" placeholder="Ticker">
-        <button onclick="fullRequest()">Analyze Stock</button>
-        <pre id="reqResult"></pre>
-    </div>
+  <!-- Chart -->
+  <div class="card full">
+    <h2>📊 All-Time Stock Chart</h2>
+    <input id="chartTicker" placeholder="AAPL" />
+    <button onclick="loadChart()">Load Chart</button>
+    <canvas id="stockChart"></canvas>
+  </div>
 
-</div>
-
-<div class="footer">
-    Built with Flask · Gemini · ML · Sentiment Analysis
 </div>
 
 <script>
 const API = "http://127.0.0.1:5000";
+let chartInstance = null;
 
-function chat() {
-    const q = document.getElementById("chatQuery").value;
-    fetch(`${API}/chatbot/${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById("chatResult").textContent =
-                d.response || JSON.stringify(d, null, 2);
-        });
+/* Chatbot */
+async function chat() {
+  const q = document.getElementById("chatQuery").value;
+  const res = await fetch(`${API}/chatbot/${encodeURIComponent(q)}`);
+  const data = await res.json();
+  document.getElementById("chatResult").textContent = data.response;
 }
 
-function fundamentals() {
-    const t = document.getElementById("fundTicker").value;
-    fetch(`${API}/fundamentals/${t}`)
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById("fundResult").textContent =
-                JSON.stringify(d, null, 2);
-        });
+/* Fundamentals */
+async function getFundamentals() {
+  const t = document.getElementById("fundTicker").value;
+  const res = await fetch(`${API}/fundamentals/${t}`);
+  const data = await res.json();
+  document.getElementById("fundResult").textContent = JSON.stringify(data, null, 2);
 }
 
-function news() {
-    const n = document.getElementById("newsStock").value;
-    fetch(`${API}/news/${encodeURIComponent(n)}`)
-        .then(r => r.json())
-        .then(list => {
-            const ul = document.getElementById("newsResult");
-            ul.innerHTML = "";
-            list.forEach(item => {
-                const li = document.createElement("li");
-                li.textContent = item;
-                ul.appendChild(li);
-            });
-        });
+/* News */
+async function getNews() {
+  const n = document.getElementById("newsStock").value;
+  const res = await fetch(`${API}/news/${n}`);
+  const data = await res.json();
+  document.getElementById("newsResult").textContent = data.join("\n\n");
 }
 
-function fullRequest() {
-    const n = document.getElementById("stockName").value;
-    const t = document.getElementById("stockTicker").value;
-    fetch(`${API}/request/${encodeURIComponent(n)}/${t}`)
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById("reqResult").textContent =
-                JSON.stringify(d, null, 2);
-        });
+/* Chart */
+async function loadChart() {
+  const ticker = document.getElementById("chartTicker").value.toUpperCase();
+  const res = await fetch(`${API}/chart/${ticker}`);
+  const data = await res.json();
+
+  const labels = data.map(d => d.date);
+  const prices = data.map(d => d.close);
+
+  const ctx = document.getElementById("stockChart");
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: `${ticker} Close Price`,
+        data: prices,
+        borderWidth: 2,
+        tension: 0.25
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } }
+      }
+    }
+  });
 }
 </script>
 
