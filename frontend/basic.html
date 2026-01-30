@@ -2,178 +2,397 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ainvestify</title>
 
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Prevent favicon error -->
+  <link rel="icon" href="data:," />
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 20px;
+    :root {
+      --bg: #0b0f0d;
+      --card: #141a17;
+      --accent: #2ecc71;
+      --accent-red: #e74c3c;
+      --text: #ecf0f1;
+      --muted: #7f8c8d;
     }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 30px;
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, #12261c, var(--bg));
+      color: var(--text);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      background: linear-gradient(90deg, #2ecc71, #a3ffcb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .container {
-      max-width: 1100px;
-      margin: auto;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+      padding: 16px;
     }
 
-    .card {
-      background: #111827;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
     }
 
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 6px;
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .topbar input {
+      background: #0e1411;
+      border: 1px solid #1f2f27;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .topbar button {
+      background: var(--accent);
       border: none;
-      font-size: 15px;
-    }
-
-    button {
-      background: #2563eb;
-      color: white;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 600;
       cursor: pointer;
     }
 
-    button:hover {
-      background: #1d4ed8;
+    .chart-box {
+      height: 360px;
     }
 
-    pre {
-      white-space: pre-wrap;
-      background: #020617;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
+    .section-box {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .full {
-      grid-column: span 2;
+    .right {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    canvas {
-      background: white;
-      border-radius: 10px;
-      padding: 10px;
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .badge-good { color: var(--accent); }
+    .badge-bad { color: var(--accent-red); }
+
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+    }
+
+    /* CHATBOT */
+    .chatbot-btn {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2ecc71, #20b26b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: #08130e;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(46, 204, 113, 0.35);
+      z-index: 1000;
+    }
+
+    .chat-window {
+      position: fixed;
+      bottom: 100px;
+      right: 22px;
+      width: 340px;
+      max-height: 460px;
+      background: var(--card);
+      border-radius: 18px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 1000;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .chat-header {
+      padding: 12px;
+      font-weight: 600;
+      background: #0f1f18;
+      border-bottom: 1px solid #1f2f27;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      font-size: 13px;
+      display: none;
+      flex-direction: column;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #1f2f27;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: #0e1411;
+      color: var(--text);
+    }
+
+    .chat-input button {
+      background: var(--accent);
+      border: none;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+
+    .message {
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      max-width: 80%;
+      word-wrap: break-word;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .message.user {
+      background: #2ecc71;
+      color: #08130e;
+      align-self: flex-end;
+    }
+
+    .message.ai {
+      background: #1f2f27;
+      color: #ecf0f1;
+      align-self: flex-start;
+    }
+
+    .message.loading {
+      font-style: italic;
+      opacity: 0.7;
+      align-self: flex-start;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-
 <body>
 
-<h1>📊 Ainvestify – Stock Analyzer</h1>
+<header>
+  <div class="logo">Ainvestify</div>
+</header>
 
 <div class="container">
 
-  <!-- Chatbot -->
-  <div class="card">
-    <h2>🤖 Stock Chatbot</h2>
-    <input id="chatQuery" placeholder="Should I buy Apple stock?" />
-    <button onclick="chat()">Ask</button>
-    <pre id="chatResult"></pre>
-  </div>
+  <main class="main">
+    <div class="topbar">
+      <input id="stockName" placeholder="Stock Name (e.g. Alphabet Inc)" />
+      <input id="stockTicker" placeholder="Ticker (e.g. GOOG)" />
+      <button onclick="loadStock()">Analyze</button>
+    </div>
 
-  <!-- Fundamentals -->
-  <div class="card">
-    <h2>📈 Fundamentals</h2>
-    <input id="fundTicker" placeholder="AAPL" />
-    <button onclick="getFundamentals()">Fetch</button>
-    <pre id="fundResult"></pre>
-  </div>
+    <div class="loader" id="mainLoader">Loading stock data...</div>
 
-  <!-- News -->
-  <div class="card full">
-    <h2>📰 Latest News</h2>
-    <input id="newsStock" placeholder="Apple" />
-    <button onclick="getNews()">Get News</button>
-    <pre id="newsResult"></pre>
-  </div>
+    <div class="chart-box">
+      <canvas id="priceChart"></canvas>
+    </div>
 
-  <!-- Chart -->
-  <div class="card full">
-    <h2>📊 All-Time Stock Chart</h2>
-    <input id="chartTicker" placeholder="AAPL" />
-    <button onclick="loadChart()">Load Chart</button>
-    <canvas id="stockChart"></canvas>
-  </div>
+    <!-- ML Output below chart -->
+    <div class="section-box" id="mlSection">
+      <h3>ML Output</h3>
+      <div id="ml"></div>
+    </div>
+
+    <!-- News below chart -->
+    <div class="section-box" id="newsSection">
+      <h3>News</h3>
+      <div id="news"></div>
+    </div>
+
+  </main>
+
+  <!-- Fundamentals remain on right -->
+  <section class="right">
+    <h3>Fundamentals</h3>
+    <div id="fundamentals"></div>
+    <!-- Sentiment based on ML scores -->
+    <div class="section-box" id="sentimentInterpretation">
+      <h3>Overall Interpretation</h3>
+      <div id="interpretation"></div>
+    </div>
+  </section>
 
 </div>
 
+<!-- CHATBOT FLOATING BUTTON -->
+<div class="chatbot-btn" onclick="toggleChat()">
+  <i class="fa-solid fa-robot"></i>
+</div>
+
+<!-- CHAT WINDOW -->
+<div class="chat-window" id="chatWindow">
+  <div class="chat-header">Ainvestify AI Assistant</div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input">
+    <input id="chatInput" placeholder="Ask about stocks, markets, news..." />
+    <button onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
 <script>
-const API = "http://127.0.0.1:5000";
-let chartInstance = null;
+  const API = "http://127.0.0.1:5000";
+  let chart = null;
 
-/* Chatbot */
-async function chat() {
-  const q = document.getElementById("chatQuery").value;
-  const res = await fetch(`${API}/chatbot/${encodeURIComponent(q)}`);
-  const data = await res.json();
-  document.getElementById("chatResult").textContent = data.response;
-}
+  async function loadStock() {
+    const name = document.getElementById("stockName").value;
+    const ticker = document.getElementById("stockTicker").value;
+    if (!ticker) return;
 
-/* Fundamentals */
-async function getFundamentals() {
-  const t = document.getElementById("fundTicker").value;
-  const res = await fetch(`${API}/fundamentals/${t}`);
-  const data = await res.json();
-  document.getElementById("fundResult").textContent = JSON.stringify(data, null, 2);
-}
+    document.getElementById("mainLoader").style.display = "block";
 
-/* News */
-async function getNews() {
-  const n = document.getElementById("newsStock").value;
-  const res = await fetch(`${API}/news/${n}`);
-  const data = await res.json();
-  document.getElementById("newsResult").textContent = data.join("\n\n");
-}
+    const chartRes = await fetch(`${API}/chart/${ticker}`);
+    const chartData = await chartRes.json();
 
-/* Chart */
-async function loadChart() {
-  const ticker = document.getElementById("chartTicker").value.toUpperCase();
-  const res = await fetch(`${API}/chart/${ticker}`);
-  const data = await res.json();
+    const labels = chartData.map(d => d.date);
+    const prices = chartData.map(d => d.close);
 
-  const labels = data.map(d => d.date);
-  const prices = data.map(d => d.close);
+    if (chart) chart.destroy();
 
-  const ctx = document.getElementById("stockChart");
+    chart = new Chart(document.getElementById("priceChart"), {
+      type: 'line',
+      data: { labels, datasets: [{ data: prices, borderColor: '#2ecc71', tension: 0.3 }] },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
 
-  if (chartInstance) chartInstance.destroy();
+    const f = await (await fetch(`${API}/fundamentals/${ticker}`)).json();
+    document.getElementById("fundamentals").innerHTML = Object.entries(f)
+      .map(([k,v]) => `<div class="metric"><span>${k}</span><span>${v}</span></div>`).join("");
 
-  chartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: `${ticker} Close Price`,
-        data: prices,
-        borderWidth: 2,
-        tension: 0.25
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: { ticks: { maxTicksLimit: 12 } }
-      }
+    const r = await (await fetch(`${API}/request/${name}/${ticker}`)).json();
+
+    // Display full ML output
+    let mlHtml = "";
+    for (const [k,v] of Object.entries(r)) {
+      mlHtml += `<div class="metric"><span>${k}</span><span>${typeof v === "number" ? v.toFixed(3) : v}</span></div>`;
     }
+    document.getElementById("ml").innerHTML = mlHtml;
+
+    // Determine interpretation based on thresholds
+    const avg = r.avg ?? 0;
+    const fundc = r.fundc ?? 0;
+    const sent = r.sent ?? 0;
+
+    let fundText = fundc >= 0.5 || avg >= 0.5 ? "Good fundamentals" : "Bad fundamentals";
+    let sentText = sent >= 0.5 ? "Bullish sentiment" : "Bearish sentiment";
+
+    document.getElementById("interpretation").textContent = `${fundText}, ${sentText}`;
+
+    const n = await (await fetch(`${API}/news/${name}`)).json();
+    document.getElementById("news").innerHTML = n.map(x => `• ${x}<br>`).join("");
+
+    document.getElementById("mainLoader").style.display = "none";
+  }
+
+  function toggleChat() {
+    const chat = document.getElementById("chatWindow");
+    chat.style.display = chat.style.display === "flex" ? "none" : "flex";
+  }
+
+  async function sendChat() {
+    const input = document.getElementById("chatInput");
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const box = document.getElementById("chatMessages");
+    if (box.style.display === "" || box.style.display === "none") box.style.display = "flex";
+
+    const userDiv = document.createElement("div");
+    userDiv.className = "message user";
+    userDiv.textContent = msg;
+    box.appendChild(userDiv);
+    box.scrollTop = box.scrollHeight;
+    input.value = "";
+
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "message loading";
+    loadingDiv.textContent = "AI is typing...";
+    box.appendChild(loadingDiv);
+    box.scrollTop = box.scrollHeight;
+
+    try {
+      const res = await fetch(`${API}/chatbot/${encodeURIComponent(msg)}`);
+      const data = await res.json();
+      loadingDiv.remove();
+      const aiDiv = document.createElement("div");
+      aiDiv.className = "message ai";
+      aiDiv.innerHTML = data.response.replace(/\n/g, "<br>");
+      box.appendChild(aiDiv);
+      box.scrollTop = box.scrollHeight;
+    } catch {
+      loadingDiv.textContent = "AI failed to respond.";
+    }
+  }
+
+  document.getElementById("chatInput").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") sendChat();
   });
-}
 </script>
 
 </body>
