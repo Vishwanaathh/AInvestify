@@ -9,8 +9,6 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
-from sklearn.preprocessing import StandardScaler
-from tensorflow.keras.models import load_model
 from sklearn.feature_extraction.text import TfidfVectorizer
 from flask import Flask, request, jsonify
 from flask_jwt_extended import jwt_required, JWTManager, create_access_token, get_jwt_identity
@@ -23,7 +21,6 @@ from dotenv import load_dotenv
 
 
 def clean_text(text):
-    
     text = BeautifulSoup(text, "html.parser").get_text()
     text = text.lower()
     text = re.sub(r"http\S+", "", text)
@@ -68,8 +65,6 @@ def get_stock_fundamentals(ticker, retries=7):
                 "Price/Book": info.get("priceToBook")
             }
 
-            
-
             return fundamentals
 
         except YFRateLimitError:
@@ -96,14 +91,8 @@ def safe_num(x):
 
 nltk.download("punkt")
 
-fund = joblib.load("../AI_PART/fundamentals_stock_model.joblib")
+tabpfn_model = joblib.load("../AI_PART/tabpfn_fundamentals_scorer.pkl")
 analyzer = SentimentIntensityAnalyzer()
-score = joblib.load("../AI_PART/stock_score_regression.pkl")
-rfrscore = joblib.load("../AI_PART/rfr_stockfundamentalsscorer.pkl")
-
-nn_model = load_model("../AI_PART/keras_stockfundamentalsscorer.h5", compile=False)
-nn_X_scaler = joblib.load("../AI_PART/keras_X_scaler.pkl")
-nn_y_scaler = joblib.load("../AI_PART/keras_Y_scaler.pkl")
 
 senlogreg = joblib.load("../AI_PART/sentiment_logreg.pkl")
 vectorizer = joblib.load("../AI_PART/tfidf_vectorizer.pkl")
@@ -114,6 +103,7 @@ CORS(app)
 load_dotenv()
 api_keyy = os.getenv("GENAI_API_KEY")
 
+
 @app.route("/")
 def home():
     return "Welcome to Ainvestify"
@@ -121,13 +111,13 @@ def home():
 
 @app.route("/chatbot/<path:query>")
 def response(query):
-    queryy="Respond to this with the latest relevant news regarding the question mentioned and also the underlying fundamentals of the business "+query
+    queryy = "Respond to this with the latest relevant news regarding the question mentioned and also the underlying fundamentals of the business " + query
     client = genai.Client(api_key=api_keyy)
     response = client.models.generate_content(
-        model="models/gemini-2.5-flash", 
+        model="models/gemini-2.5-flash",
         contents=queryy
     )
-    
+
     return jsonify({"response": response.text})
 
 
@@ -153,11 +143,9 @@ def stock_chart(stockticker):
         return jsonify({"error": str(e)}), 500
 
 
-
-
 @app.route("/fundamentals/<stockticker>")
 def fundd(stockticker):
-    ff=get_stock_fundamentals(stockticker)
+    ff = get_stock_fundamentals(stockticker)
     input_features = {
         "Market Cap": safe_num(ff["Market Cap"]),
         "Current Price": safe_num(ff["Current Price"]),
@@ -174,23 +162,23 @@ def fundd(stockticker):
     return jsonify(input_features)
 
 
-
 @app.route("/news/<stockname>")
 def news(stockname):
-    news_articles=scrape_google_news_rss(stockname)
+    news_articles = scrape_google_news_rss(stockname)
     cleaned_articles = [clean_text(a) for a in news_articles]
     return cleaned_articles
 
 
-
-
 @app.route("/request/<stockname>/<stockticker>")
 def reqq(stockname, stockticker):
+    t_start = time.time()
     ff = get_stock_fundamentals(stockticker)
+    t_fund_fetch = time.time()
     if ff is None:
         return jsonify({"error": "Failed to fetch stock fundamentals"}), 500
 
     news_articles = scrape_google_news_rss(stockname)
+    t_news_fetch = time.time()
     cleaned_articles = [clean_text(a) for a in news_articles]
 
     all_news = ""
@@ -199,6 +187,7 @@ def reqq(stockname, stockticker):
     else:
         all_news = " ".join(cleaned_articles)
         s = analyzer.polarity_scores(all_news)["compound"]
+    t_sentiment_score = time.time()
 
     input_features = [[
         safe_num(ff["Market Cap"]),
@@ -213,22 +202,24 @@ def reqq(stockname, stockticker):
         safe_num(ff["Price/Book"])
     ]]
 
-    f = fund.predict(input_features)[0]
-    sc = score.predict(input_features)[0]
-    rfr = rfrscore.predict(input_features)[0]
-
-    X_input_scaled = nn_X_scaler.transform(input_features)
-    nn_scaled = nn_model.predict(X_input_scaled)
-    nns = nn_y_scaler.inverse_transform(nn_scaled.reshape(-1, 1))[0][0]
+    t0 = time.time()
+    fundamental_score = tabpfn_model.predict(input_features)[0]
+    t1 = time.time()
 
     senlog = senlogreg.predict(vectorizer.transform([all_news]))
+    t2 = time.time()
+
+    print(
+        f"[TIMING] fundamentals_fetch: {t_fund_fetch - t_start:.4f}s | "
+        f"news_fetch: {t_news_fetch - t_fund_fetch:.4f}s | "
+        f"sentiment_score: {t_sentiment_score - t_news_fetch:.4f}s | "
+        f"tabpfn_model: {t1 - t0:.4f}s | "
+        f"sentiment_logreg: {t2 - t1:.4f}s | "
+        f"TOTAL: {t2 - t_start:.4f}s"
+    )
 
     return jsonify({
-        "fundc": float(f),
-        "XG": float(sc),
-        "RFR": float(rfr),
-        "nns": float(nns),
-        "avg": float((sc + rfr + nns) / 3),
+        "fundamental_score": float(fundamental_score),
         "sent": float(s),
         "logsent": int(senlog[0])
     })
