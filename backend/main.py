@@ -1,4 +1,4 @@
-import pandas as pd
+﻿import pandas as pd
 import re
 import numpy as np
 import joblib
@@ -9,7 +9,6 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
-from sklearn.feature_extraction.text import TfidfVectorizer
 from flask import Flask, request, jsonify
 from flask_jwt_extended import jwt_required, JWTManager, create_access_token, get_jwt_identity
 from flask_cors import CORS
@@ -18,6 +17,8 @@ from bs4 import BeautifulSoup
 import os
 from google import genai
 from dotenv import load_dotenv
+from transformers import pipeline
+from tabpfn_client import TabPFNRegressor
 
 
 def clean_text(text):
@@ -91,11 +92,47 @@ def safe_num(x):
 
 nltk.download("punkt")
 
-tabpfn_model = joblib.load("../AI_PART/tabpfn_fundamentals_scorer.pkl")
 analyzer = SentimentIntensityAnalyzer()
 
-senlogreg = joblib.load("../AI_PART/sentiment_logreg.pkl")
-vectorizer = joblib.load("../AI_PART/tfidf_vectorizer.pkl")
+print("Loading FinBERT sentiment model...")
+finbert = pipeline("sentiment-analysis", model="ProsusAI/finbert")
+print("FinBERT loaded.")
+
+print("Training TabPFN fundamentals model via hosted API...")
+_train_data = pd.read_csv("../AI_PART/datasets/financials_cleaned.csv", sep=",")
+_train_data = _train_data.rename(columns={"52w_low": "52w_high_temp"})
+_train_data = _train_data.rename(columns={"52w_high": "52w_low"})
+_train_data = _train_data.rename(columns={"52w_high_temp": "52w_high"})
+_numeric_cols = ["Price", "Price/Earnings", "Dividend_Yield", "52w_low", "52w_high",
+                  "Market_Cap", "EBITDA", "Price/Sales", "Price/Book", "Book_Value"]
+_train_data[_numeric_cols] = _train_data[_numeric_cols].apply(pd.to_numeric, errors="coerce")
+_train_data = _train_data.dropna(subset=_numeric_cols)
+for col in _numeric_cols:
+    lower = _train_data[col].quantile(0.01)
+    upper = _train_data[col].quantile(0.99)
+    _train_data[col] = _train_data[col].clip(lower=lower, upper=upper)
+_train_data["selling_zone"] = np.where(
+    ((_train_data["52w_high"] - _train_data["Price"]) / _train_data["52w_high"]) <= 0.10, 1, 0
+)
+_train_data["ebitda_to_mcap"] = _train_data["EBITDA"] / _train_data["Market_Cap"]
+_train_data["fundamental_score"] = (
+    0.20 * (_train_data["Price/Earnings"].between(10, 25)).astype(int) +
+    0.20 * (_train_data["Market_Cap"] >= 10000000000).astype(int) +
+    0.20 * (_train_data["ebitda_to_mcap"].between(0.05, 0.15)).astype(int) +
+    0.20 * ((_train_data["Price/Sales"] < 1) | (_train_data["Price/Sales"].between(1, 2))).astype(int) +
+    0.20 * (
+        (_train_data["Dividend_Yield"] > 3.5) |
+        (_train_data["selling_zone"] == 1) |
+        (_train_data["Price/Book"] < 3)
+    ).astype(int)
+)
+_X_train = _train_data[["Market_Cap", "Price", "52w_high", "52w_low", "Book_Value",
+                          "Price/Earnings", "Dividend_Yield", "EBITDA", "Price/Sales", "Price/Book"]]
+_Y_train = _train_data["fundamental_score"]
+
+tabpfn_model = TabPFNRegressor()
+tabpfn_model.fit(_X_train, _Y_train)
+print("TabPFN model trained and ready.")
 
 app = Flask(__name__)
 CORS(app)
@@ -189,7 +226,7 @@ def reqq(stockname, stockticker):
         s = analyzer.polarity_scores(all_news)["compound"]
     t_sentiment_score = time.time()
 
-    input_features = [[
+    input_features = pd.DataFrame([[
         safe_num(ff["Market Cap"]),
         safe_num(ff["Current Price"]),
         safe_num(ff["52 Week High"]),
@@ -200,13 +237,19 @@ def reqq(stockname, stockticker):
         safe_num(ff["EBITDA"]),
         safe_num(ff["Price/Sales"]),
         safe_num(ff["Price/Book"])
-    ]]
+    ]], columns=["Market_Cap", "Price", "52w_high", "52w_low", "Book_Value", "Price/Earnings", "Dividend_Yield", "EBITDA", "Price/Sales", "Price/Book"])
 
     t0 = time.time()
     fundamental_score = tabpfn_model.predict(input_features)[0]
     t1 = time.time()
 
-    senlog = senlogreg.predict(vectorizer.transform([all_news]))
+    if all_news.strip():
+        finbert_result = finbert(all_news[:512])[0]
+        finbert_label = finbert_result["label"]
+        finbert_confidence = finbert_result["score"]
+    else:
+        finbert_label = "neutral"
+        finbert_confidence = 0.0
     t2 = time.time()
 
     print(
@@ -214,14 +257,15 @@ def reqq(stockname, stockticker):
         f"news_fetch: {t_news_fetch - t_fund_fetch:.4f}s | "
         f"sentiment_score: {t_sentiment_score - t_news_fetch:.4f}s | "
         f"tabpfn_model: {t1 - t0:.4f}s | "
-        f"sentiment_logreg: {t2 - t1:.4f}s | "
+        f"finbert: {t2 - t1:.4f}s | "
         f"TOTAL: {t2 - t_start:.4f}s"
     )
 
     return jsonify({
         "fundamental_score": float(fundamental_score),
         "sent": float(s),
-        "logsent": int(senlog[0])
+        "finbert_label": finbert_label,
+        "finbert_confidence": float(finbert_confidence)
     })
 
 
