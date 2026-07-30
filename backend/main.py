@@ -50,8 +50,8 @@ def get_stock_fundamentals(ticker, retries=7):
         try:
             info = stock.info
 
-            if info is None or len(info) == 0:
-                raise Exception("Empty fundamentals returned from Yahoo")
+            if info is None or len(info) == 0 or info.get("currentPrice") is None:
+                raise Exception("Empty or invalid fundamentals returned from Yahoo")
 
             fundamentals = {
                 "Market Cap": info.get("marketCap"),
@@ -93,6 +93,9 @@ def safe_num(x):
 nltk.download("punkt")
 
 analyzer = SentimentIntensityAnalyzer()
+
+_news_cache = {}
+_NEWS_CACHE_TTL = 300  # 5 minutes
 
 print("Loading FinBERT sentiment model...")
 finbert = pipeline("sentiment-analysis", model="ProsusAI/finbert")
@@ -183,6 +186,8 @@ def stock_chart(stockticker):
 @app.route("/fundamentals/<stockticker>")
 def fundd(stockticker):
     ff = get_stock_fundamentals(stockticker)
+    if ff is None:
+        return jsonify({"error": "Failed to fetch stock fundamentals"}), 500
     input_features = {
         "Market Cap": safe_num(ff["Market Cap"]),
         "Current Price": safe_num(ff["Current Price"]),
@@ -214,12 +219,18 @@ def reqq(stockname, stockticker):
     if ff is None:
         return jsonify({"error": "Failed to fetch stock fundamentals"}), 500
 
-    news_articles = scrape_google_news_rss(stockname)
+    cache_key = stockname.lower()
+    now = time.time()
+    if cache_key in _news_cache and (now - _news_cache[cache_key]["timestamp"]) < _NEWS_CACHE_TTL:
+        cleaned_articles = _news_cache[cache_key]["articles"]
+    else:
+        news_articles = scrape_google_news_rss(stockname)
+        cleaned_articles = [clean_text(a) for a in news_articles]
+        _news_cache[cache_key] = {"articles": cleaned_articles, "timestamp": now}
     t_news_fetch = time.time()
-    cleaned_articles = [clean_text(a) for a in news_articles]
 
     all_news = ""
-    if not news_articles:
+    if not cleaned_articles:
         s = 0
     else:
         all_news = " ".join(cleaned_articles)
@@ -240,16 +251,25 @@ def reqq(stockname, stockticker):
     ]], columns=["Market_Cap", "Price", "52w_high", "52w_low", "Book_Value", "Price/Earnings", "Dividend_Yield", "EBITDA", "Price/Sales", "Price/Book"])
 
     t0 = time.time()
-    fundamental_score = tabpfn_model.predict(input_features)[0]
+    try:
+        fundamental_score = float(tabpfn_model.predict(input_features)[0])
+    except Exception as e:
+        print(f"TabPFN prediction failed: {e}")
+        fundamental_score = None
     t1 = time.time()
 
-    if all_news.strip():
-        finbert_result = finbert(all_news[:512])[0]
-        finbert_label = finbert_result["label"]
-        finbert_confidence = finbert_result["score"]
-    else:
-        finbert_label = "neutral"
-        finbert_confidence = 0.0
+    try:
+        if all_news.strip():
+            finbert_result = finbert(all_news[:512])[0]
+            finbert_label = finbert_result["label"]
+            finbert_confidence = float(finbert_result["score"])
+        else:
+            finbert_label = "neutral"
+            finbert_confidence = 0.0
+    except Exception as e:
+        print(f"FinBERT prediction failed: {e}")
+        finbert_label = "unknown"
+        finbert_confidence = None
     t2 = time.time()
 
     print(
@@ -262,12 +282,11 @@ def reqq(stockname, stockticker):
     )
 
     return jsonify({
-        "fundamental_score": float(fundamental_score),
+        "fundamental_score": fundamental_score,
         "sent": float(s),
         "finbert_label": finbert_label,
-        "finbert_confidence": float(finbert_confidence)
+        "finbert_confidence": finbert_confidence
     })
-
 
 if __name__ == "__main__":
     app.run(debug=True)
