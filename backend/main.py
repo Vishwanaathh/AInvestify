@@ -12,6 +12,8 @@ from yfinance.exceptions import YFRateLimitError
 from flask import Flask, request, jsonify
 from flask_jwt_extended import jwt_required, JWTManager, create_access_token, get_jwt_identity
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from nltk.tokenize import word_tokenize
 from bs4 import BeautifulSoup
 import os
@@ -142,6 +144,8 @@ print("TabPFN model trained and ready.")
 app = Flask(__name__)
 CORS(app)
 
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
+
 api_keyy = os.getenv("GENAI_API_KEY")
 
 
@@ -213,6 +217,7 @@ def news(stockname):
 
 
 @app.route("/request/<stockname>/<stockticker>")
+@limiter.limit("10 per minute")
 def reqq(stockname, stockticker):
     t_start = time.time()
     ff = get_stock_fundamentals(stockticker)
@@ -288,6 +293,7 @@ def reqq(stockname, stockticker):
         "finbert_label": finbert_label,
         "finbert_confidence": finbert_confidence
     })
+
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
