@@ -1,4 +1,4 @@
-﻿import pandas as pd
+import pandas as pd
 import re
 import numpy as np
 import joblib
@@ -19,6 +19,8 @@ from google import genai
 from dotenv import load_dotenv
 from transformers import pipeline
 from tabpfn_client import TabPFNRegressor
+
+load_dotenv()
 
 
 def clean_text(text):
@@ -140,7 +142,6 @@ print("TabPFN model trained and ready.")
 app = Flask(__name__)
 CORS(app)
 
-load_dotenv()
 api_keyy = os.getenv("GENAI_API_KEY")
 
 
@@ -289,4 +290,4 @@ def reqq(stockname, stockticker):
     })
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
